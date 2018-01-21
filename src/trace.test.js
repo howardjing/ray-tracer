@@ -1,5 +1,5 @@
 // @flow
-import { Vector } from './trace';
+import { Point, Vector, ScreenToWorld } from './trace';
 
 declare var describe: any;
 declare var it: any;
@@ -21,4 +21,27 @@ describe('Vector', () => {
       expect(Vector.make(1, 2, 3).normalize().magnitude()).toEqual(1);
     });
   });
+});
+
+describe('ScreenToWorld', () => {
+  describe('constructor', () => {
+    it('finds world max height', () => {
+      const screenToWorld = new ScreenToWorld(800, 600, 10);
+      expect(screenToWorld.worldMaxHeight).toEqual(7.5);
+    });
+  });
+
+  describe('getPoint', () => {
+    it('returns appropriate world coordinates', () => {
+      const screenToWorld = new ScreenToWorld(800, 600, 10);
+
+      expect(screenToWorld.getPoint(0, 0).toArray()).toEqual(Point.make(
+        -5, 0, 3.75,
+      ).toArray());
+
+      expect(screenToWorld.getPoint(799, 599).toArray()).toEqual(Point.make(
+        5, 0, -3.75,
+      ).toArray());
+    });
+  })
 });
