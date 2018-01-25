@@ -1,4 +1,5 @@
 // @flow
+import quadraticSolver from './quadratic-solver';
 
 /**
  * given a number of possibilities n, returns a random integer
@@ -27,6 +28,19 @@ const subtract = (ys: number[], xs: number[]): number[] => {
   return ys.map((y, i) => y - xs[i]);
 };
 
+const multiply = (xs: number[], y: number): number[] =>
+  xs.map(x => x * y);
+
+const dotProduct = (xs: number[], ys: number[]): number => {
+  if (xs.length != ys.length) {
+    throw new Error(`cannot take dot product, dimension mismatch: ${xs.length} and ${ys.length}`);
+  }
+
+  return xs
+    .map((x, i) => x * ys[i])
+    .reduce((accum, product) => accum + product, 0);
+}
+
 class Point {
   x: number;
   y: number;
@@ -41,6 +55,8 @@ class Point {
   static make(x: number, y: number, z: number) {
     return new this(x, y, z);
   }
+
+  subtract = (that: Point): Vector => Vector.make(...subtract(toArray(this), toArray(that)));
 
   toArray = () => toArray(this);
 }
@@ -60,19 +76,20 @@ class Vector {
     return new this(x, y, z);
   }
 
-  magnitude = () => {
+  magnitude = (): number=> {
     return magnitude(toArray(this));
   }
 
-  normalize = () => {
+  normalize = (): Vector => {
     return this.constructor.make(...normalize(toArray(this)));
   }
 
+  dotProduct = (that: Vector): number => dotProduct(toArray(this), toArray(that));
+
+  scalarMultiply = (scalar: number): Vector => Vector.make(...multiply(toArray(this), scalar));
+
   toArray = () => toArray(this);
 }
-
-const vectorFromPoints = (end: Point, start: Point): Vector =>
-  Vector.make(...subtract(toArray(end), toArray(start)));
 
 class Ray {
   origin: Point;
@@ -80,11 +97,46 @@ class Ray {
 
   constructor(origin: Point, end: Point) {
     this.origin = origin;
-    this.direction = vectorFromPoints(end, origin).normalize();
+    this.direction = end.subtract(origin).normalize();
   }
 
   static make(origin: Point, end: Point) {
     return new this(origin, end);
+  }
+}
+
+class Sphere {
+  origin: Point;
+  radius: number;
+
+  constructor(origin: Point, radius: number) {
+    this.origin = origin;
+    this.radius = radius;
+  }
+
+  static make(origin: Point, radius: number) {
+    return new this(origin, radius);
+  }
+
+  /**
+   * Assuming the ray is normalized, then when solving the quadratic formula where
+   *
+   * a = dotProduct(rayDirection, rayDirection) = 1
+   * b = 2 * rayDirection * (originRay - originSphere)
+   * c = (originRay - originSphere)^2 - radius^2
+   *
+   * we find valid solutions, then the ray intersects with the sphere
+   *
+   * https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
+   */
+  intersects = (ray: Ray) => {
+    const difference = ray.origin.subtract(this.origin);
+    const a = ray.direction.dotProduct(ray.direction);
+    const b = ray.direction.scalarMultiply(2).dotProduct(difference);
+    const c = difference.dotProduct(difference) - Math.pow(this.radius, 2);
+
+    const roots = quadraticSolver(a, b, c);
+    return roots.length > 0;
   }
 }
 
@@ -102,7 +154,10 @@ class ScreenToWorld {
     this.worldMaxHeight = scale * screenMaxHeight;
   }
 
-  getPoint = (screenWidth: number, screenHeight: number) => {
+  /**
+   * given screen coordinates, return a world coordinate
+   */
+  getPoint = (screenWidth: number, screenHeight: number): Point => {
     const percentWidth = screenWidth / (this.screenMaxWidth - 1);
     const percentHeight = screenHeight / (this.screenMaxHeight - 1);
     const worldWidth = percentWidth * this.worldMaxWidth - (this.worldMaxWidth / 2);
@@ -131,6 +186,7 @@ const trace = (canvas: HTMLCanvasElement) => {
    * TODO: make origin parameterizable
    */
   const origin = Point.make(0, -10, 0);
+  const sphere = Sphere.make(Point.make(0, 0, 0), 2);
   const screenToWorld = new ScreenToWorld(canvasWidth, canvasHeight, 10);
 
   /**
@@ -141,10 +197,11 @@ const trace = (canvas: HTMLCanvasElement) => {
    */
   for (let i = 0; i < canvasWidth; i++) {
     for (let j = 0; j < canvasHeight; j++) {
-      ctx.fillStyle = `rgb(${random(256)},${random(256)},${random(256)})`;
-      ctx.fillRect(i, j, 1, 1);
-
       const ray = Ray.make(origin, screenToWorld.getPoint(i, j));
+      if (sphere.intersects(ray)) {
+        ctx.fillStyle = `rgb(${random(256)},${random(256)},${random(256)})`;
+        ctx.fillRect(i, j, 1, 1);
+      }
     }
   }
 }
