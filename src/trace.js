@@ -77,6 +77,16 @@ class Point {
   toArray = () => toArray(this);
 }
 
+/**
+ * Determinant of a 2x2 matrix.
+ *
+ * |a b|
+ * |c d|
+ */
+const determinant2x2 = (a: number, b: number, c: number, d: number): number => {
+  return a * d - b * c;
+}
+
 class Vector {
   x: number;
   y: number;
@@ -100,9 +110,26 @@ class Vector {
     return this.constructor.make(...normalize(toArray(this)));
   }
 
+  multiplyScalar = (scalar: number): Vector => Vector.make(...multiply(toArray(this), scalar));
+
   dotProduct = (that: Vector): number => dotProduct(toArray(this), toArray(that));
 
-  multiplyScalar = (scalar: number): Vector => Vector.make(...multiply(toArray(this), scalar));
+  /**
+   * Determinant of a 3x3 matrix.
+   *
+   * |i   j  k|
+   * |a1 a2 a3|
+   * |b1 b2 b3|
+   *
+   * where this is the a vector and that is the b vector
+   */
+  crossProduct = (that: Vector): Vector => {
+    return Vector.make(
+      determinant2x2(this.y, this.z, that.y, that.z),
+      -determinant2x2(this.x, this.z, that.x, that.z),
+      determinant2x2(this.x, this.y, that.x, that.y),
+    );
+  }
 
   toArray = () => toArray(this);
 }
@@ -147,6 +174,8 @@ class Sphere {
    */
   intersect = (ray: Ray): ?Point => {
     const difference = ray.origin.subtract(this.origin);
+
+    // TODO: assuming ray.direction is normalized, this will always be 1
     const a = ray.direction.dotProduct(ray.direction);
     const b = ray.direction.multiplyScalar(2).dotProduct(difference);
     const c = difference.dotProduct(difference) - Math.pow(this.radius, 2);
@@ -159,6 +188,10 @@ class Sphere {
     const minRoot = Math.min(...roots);
 
     return ray.origin.addVector(ray.direction.multiplyScalar(minRoot));
+  }
+
+  normalVector = (p: Point): Vector => {
+    return p.subtract(this.origin).normalize();
   }
 }
 

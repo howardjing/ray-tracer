@@ -21,6 +21,15 @@ describe('Vector', () => {
       expect(Vector.make(1, 2, 3).normalize().magnitude()).toEqual(1);
     });
   });
+
+  describe('crossProduct', () => {
+    it("returns the cross product", () => {
+      // http://onlinemschool.com/math/practice/vector3/multiply1/
+      expect(Vector.make(16, 6, -9).crossProduct(Vector.make(-12, -9, 12)).toArray()).toEqual(
+        Vector.make(-9,-84,-72).toArray(),
+      );
+    });
+  })
 });
 
 describe('ScreenToWorld', () => {
