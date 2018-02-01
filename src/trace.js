@@ -241,7 +241,10 @@ const trace = (canvas: HTMLCanvasElement) => {
    * TODO: make origin parameterizable
    */
   const origin = Point.make(0, -10, 0);
-  const sphere = Sphere.make(Point.make(0, 0, 0), 2);
+  const sphere1 = Sphere.make(Point.make(0, 0, 0), 2);
+  const sphere2 = Sphere.make(Point.make(3, 5, 0), 2);
+
+  const objects = [sphere1, sphere2];
   const screenToWorld = new ScreenToWorld(canvasWidth, canvasHeight, 10);
 
   /**
@@ -253,7 +256,7 @@ const trace = (canvas: HTMLCanvasElement) => {
   for (let i = 0; i < canvasWidth; i++) {
     for (let j = 0; j < canvasHeight; j++) {
       const ray = Ray.make(origin, screenToWorld.getPoint(i, j));
-      if (sphere.intersect(ray)) {
+      if (objects.find(object => object.intersect(ray))) {
         ctx.fillStyle = `rgb(${random(256)},${random(256)},${random(256)})`;
         ctx.fillRect(i, j, 1, 1);
       }
