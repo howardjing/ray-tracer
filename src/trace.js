@@ -20,6 +20,20 @@ const normalize = (xs: number[]): number[] => {
   return xs.map(x => x / m);
 };
 
+const add = (xs: number[], ys: number[]): number[] => {
+  if (xs.length != ys.length) {
+    throw new Error(`cannot add array, dimension mismatch: ${xs.length} and ${ys.length}`);
+  }
+
+  return xs.map((x, i) => x + ys[i]);
+};
+
+/**
+ * NOTE: not sure if inverting xs and ys was the correct decision. My thought was that
+ * translating 5 - 3 to subtract(5, 3) was more natural than subtract(3, 5).
+ *
+ * However, this is the only operation where I've inverted ys and xs.
+ */
 const subtract = (ys: number[], xs: number[]): number[] => {
   if (ys.length != xs.length) {
     throw new Error(`cannot subtract arrays, dimension mismatch: ${ys.length} and ${xs.length}`);
@@ -56,6 +70,8 @@ class Point {
     return new this(x, y, z);
   }
 
+  addVector = (that: Vector): Point => Point.make(...add(toArray(this), toArray(that)));
+
   subtract = (that: Point): Vector => Vector.make(...subtract(toArray(this), toArray(that)));
 
   toArray = () => toArray(this);
@@ -86,7 +102,7 @@ class Vector {
 
   dotProduct = (that: Vector): number => dotProduct(toArray(this), toArray(that));
 
-  scalarMultiply = (scalar: number): Vector => Vector.make(...multiply(toArray(this), scalar));
+  multiplyScalar = (scalar: number): Vector => Vector.make(...multiply(toArray(this), scalar));
 
   toArray = () => toArray(this);
 }
@@ -129,14 +145,20 @@ class Sphere {
    *
    * https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
    */
-  intersects = (ray: Ray) => {
+  intersect = (ray: Ray): ?Point => {
     const difference = ray.origin.subtract(this.origin);
     const a = ray.direction.dotProduct(ray.direction);
-    const b = ray.direction.scalarMultiply(2).dotProduct(difference);
+    const b = ray.direction.multiplyScalar(2).dotProduct(difference);
     const c = difference.dotProduct(difference) - Math.pow(this.radius, 2);
 
+    // possible root intersection points
     const roots = quadraticSolver(a, b, c);
-    return roots.length > 0;
+
+    // we want the smallest root
+    if (roots.length === 0) { return null; }
+    const minRoot = Math.min(...roots);
+
+    return ray.origin.addVector(ray.direction.multiplyScalar(minRoot));
   }
 }
 
@@ -198,7 +220,7 @@ const trace = (canvas: HTMLCanvasElement) => {
   for (let i = 0; i < canvasWidth; i++) {
     for (let j = 0; j < canvasHeight; j++) {
       const ray = Ray.make(origin, screenToWorld.getPoint(i, j));
-      if (sphere.intersects(ray)) {
+      if (sphere.intersect(ray)) {
         ctx.fillStyle = `rgb(${random(256)},${random(256)},${random(256)})`;
         ctx.fillRect(i, j, 1, 1);
       }
