@@ -73,7 +73,7 @@ class Color {
     return new this(red, green, blue);
   }
 
-  asArray = () => [this.red, this.green, this.blue];
+  toArray = () => [this.red, this.green, this.blue];
 
   toRgbString() {
     return `rgb(${this.red},${this.green},${this.blue})`;
@@ -106,7 +106,7 @@ class Material {
    */
   getColor = (point: Point, norm: Vector, light: Point): Color => {
     const dot = light.subtract(point).normalize().dotProduct(norm);
-    return Color.make(...multiply(this.color.asArray(), dot).map(x => Math.round(x)));
+    return Color.make(...multiply(this.color.toArray(), dot).map(x => Math.round(x)));
   }
 }
 
