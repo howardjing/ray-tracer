@@ -53,6 +53,41 @@ const dotProduct = (xs: number[], ys: number[]): number => {
   return xs
     .map((x, i) => x * ys[i])
     .reduce((accum, product) => accum + product, 0);
+};
+
+const truncate = (n: number, min: number, max: number): number =>
+  Math.min(Math.max(n, min), max);
+
+class Color {
+  red: number;
+  green: number;
+  blue: number;
+
+  constructor(red: number, green: number, blue: number) {
+    this.red = truncate(red, 0, 255);
+    this.green = truncate(green, 0, 255);
+    this.blue = truncate(blue, 0, 255);
+  }
+
+  static make(red: number, green: number, blue: number) {
+    return new this(red, green, blue);
+  }
+
+  toRgbString() {
+    return `rgb(${this.red},${this.green},${this.blue})`;
+  }
+}
+
+class Material {
+  color: Color;
+
+  constructor(color: Color) {
+    this.color = color;
+  }
+
+  static make(color: Color) {
+    return new this(color);
+  }
 }
 
 class Point {
@@ -121,7 +156,7 @@ class Vector {
    * |a1 a2 a3|
    * |b1 b2 b3|
    *
-   * where this is the a vector and that is the b vector
+   * where `this` is the a vector and `that` is the b vector
    */
   crossProduct = (that: Vector): Vector => {
     return Vector.make(
@@ -151,14 +186,16 @@ class Ray {
 class Sphere {
   origin: Point;
   radius: number;
+  material: Material;
 
-  constructor(origin: Point, radius: number) {
+  constructor(origin: Point, radius: number, material: Material) {
     this.origin = origin;
     this.radius = radius;
+    this.material = material;
   }
 
-  static make(origin: Point, radius: number) {
-    return new this(origin, radius);
+  static make(origin: Point, radius: number, material: Material) {
+    return new this(origin, radius, material);
   }
 
   /**
@@ -222,6 +259,22 @@ class ScreenToWorld {
 }
 
 /**
+ * like find, but instead of returning the found object, it returns
+ * the found object + the return value of the finder function
+ */
+const find = <T, U>(ts: T[], finder: (t: T) => ?U): [?T, ?U] => {
+  for (let i = 0; i < ts.length; i++) {
+    const t = ts[i];
+    const u = finder(t);
+    if (u) {
+      return [t, u];
+    }
+  }
+
+  return [null, null];
+};
+
+/**
  * Going with these conventions:
  *
  * xyz right handed cartesian coordinate system
@@ -241,8 +294,8 @@ const trace = (canvas: HTMLCanvasElement) => {
    * TODO: make origin parameterizable
    */
   const origin = Point.make(0, -10, 0);
-  const sphere1 = Sphere.make(Point.make(0, 0, 0), 2);
-  const sphere2 = Sphere.make(Point.make(3, 5, 0), 2);
+  const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50, 100, 150)));
+  const sphere2 = Sphere.make(Point.make(3, 5, 0), 2, Material.make(Color.make(150, 100, 50)));
 
   const objects = [sphere1, sphere2];
   const screenToWorld = new ScreenToWorld(canvasWidth, canvasHeight, 10);
@@ -256,8 +309,10 @@ const trace = (canvas: HTMLCanvasElement) => {
   for (let i = 0; i < canvasWidth; i++) {
     for (let j = 0; j < canvasHeight; j++) {
       const ray = Ray.make(origin, screenToWorld.getPoint(i, j));
-      if (objects.find(object => object.intersect(ray))) {
-        ctx.fillStyle = `rgb(${random(256)},${random(256)},${random(256)})`;
+      const [object, point] = find(objects, object => object.intersect(ray));
+
+      if (object) {
+        ctx.fillStyle = object.material.color.toRgbString();
         ctx.fillRect(i, j, 1, 1);
       }
     }
