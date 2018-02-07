@@ -73,6 +73,8 @@ class Color {
     return new this(red, green, blue);
   }
 
+  asArray = () => [this.red, this.green, this.blue];
+
   toRgbString() {
     return `rgb(${this.red},${this.green},${this.blue})`;
   }
@@ -87,6 +89,24 @@ class Material {
 
   static make(color: Color) {
     return new this(color);
+  }
+
+  /**
+   * For now this is a Lambertian material.
+   *
+   * https://en.wikipedia.org/wiki/Lambertian_reflectance
+   *
+   * @param point - where the shape is located
+   * @param norm - the normal of the shape at the given point
+   * @param light - the location of the light
+
+   * For lambertian reflectance, we take the dot product of the
+   * the direction from the point to light source and the norm of
+   * the shape.
+   */
+  getColor = (point: Point, norm: Vector, light: Point): Color => {
+    const dot = light.subtract(point).normalize().dotProduct(norm);
+    return Color.make(...multiply(this.color.asArray(), dot).map(x => Math.round(x)));
   }
 }
 
@@ -311,8 +331,12 @@ const trace = (canvas: HTMLCanvasElement) => {
       const ray = Ray.make(origin, screenToWorld.getPoint(i, j));
       const [object, point] = find(objects, object => object.intersect(ray));
 
-      if (object) {
-        ctx.fillStyle = object.material.color.toRgbString();
+      if (object && point) {
+        const norm = object.normalVector(point);
+        // let's assume there's a light where the camera is
+        const light = ray.origin;
+        const color = object.material.getColor(point, norm, light);
+        ctx.fillStyle = color.toRgbString();
         ctx.fillRect(i, j, 1, 1);
       }
     }
