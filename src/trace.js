@@ -316,6 +316,7 @@ const trace = (canvas: HTMLCanvasElement) => {
   const origin = Point.make(0, -10, 0);
   const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50, 100, 150)));
   const sphere2 = Sphere.make(Point.make(3, 5, 0), 2, Material.make(Color.make(150, 100, 50)));
+  const light1 = Point.make(5, 1, 8);
 
   const objects = [sphere1, sphere2];
   const screenToWorld = new ScreenToWorld(canvasWidth, canvasHeight, 10);
@@ -333,8 +334,7 @@ const trace = (canvas: HTMLCanvasElement) => {
 
       if (object && point) {
         const norm = object.normalVector(point);
-        // let's assume there's a light where the camera is
-        const light = ray.origin;
+        const light = light1;
         const color = object.material.getColor(point, norm, light);
         ctx.fillStyle = color.toRgbString();
         ctx.fillRect(i, j, 1, 1);
