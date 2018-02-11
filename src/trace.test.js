@@ -1,5 +1,5 @@
 // @flow
-import { Point, Vector, ScreenToWorld } from './trace';
+import { Point, Vector, ScreenToWorld, reflectVector } from './trace';
 
 declare var describe: any;
 declare var it: any;
@@ -53,4 +53,14 @@ describe('ScreenToWorld', () => {
       ).toArray());
     });
   })
+});
+
+describe('reflectVector', () => {
+  it('works', () => {
+    const sqrt3 = Math.sqrt(3)
+    const light = Vector.make(1/sqrt3, 1/sqrt3, 1/sqrt3);
+    const norm = Vector.make(0, 0, 1);
+    const reflection = Vector.make(-1/sqrt3, -1/sqrt3, 1/sqrt3);
+    expect(reflectVector(light, norm).toArray()).toEqual(reflection.toArray());
+  });
 });

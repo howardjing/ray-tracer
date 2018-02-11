@@ -58,6 +58,12 @@ const dotProduct = (xs: number[], ys: number[]): number => {
 const truncate = (n: number, min: number, max: number): number =>
   Math.min(Math.max(n, min), max);
 
+
+const reflectVector = (light: Vector, normal: Vector): Vector => {
+  return normal.multiplyScalar(2 * normal.dotProduct(light))
+    .subtract(light);
+}
+
 class Color {
   red: number;
   green: number;
@@ -90,13 +96,15 @@ class Color {
 
 class Material {
   color: Color;
+  shinyness: number;
 
-  constructor(color: Color) {
+  constructor(color: Color, shinyness: number) {
     this.color = color;
+    this.shinyness = shinyness;
   }
 
-  static make(color: Color) {
-    return new this(color);
+  static make(color: Color, shinyness: number) {
+    return new this(color, shinyness);
   }
 
   /**
@@ -105,26 +113,36 @@ class Material {
    * https://en.wikipedia.org/wiki/Lambertian_reflectance
    *
    * @param point - where the shape is located
-   * @param norm - the normal of the shape at the given point
+   * @param normal - the normal of the shape at the given point
    * @param light - the location of the light
 
    * For lambertian reflectance, we take the dot product of the
    * the direction from the point to light source and the norm of
    * the shape.
    */
-  getColor = (point: Point, norm: Vector, light: Point): Color => {
-    const ambient = this.getAmbientColor();
-    const lambertian = this.getLambertianColor(point, norm, light);
+  getColor = (point: Point, normal: Vector, light: Point, camera: Point): Color => {
+    const lightDirection = light.subtract(point).normalize();
+    const cameraDirection = camera.subtract(point).normalize();
 
-    return ambient.multiply(0.2).add(lambertian.multiply(0.8));
+    const ambient = this.getAmbientColor();
+    const lambertian = this.getLambertianColor(point, normal, lightDirection);
+    const specular = this.getSpecularColor(normal, lightDirection, cameraDirection);
+
+    return ambient.multiply(0.1).add(lambertian.multiply(0.45)).add(specular.multiply(0.45));
   };
 
   /**
    * @private
    */
-  getLambertianColor = (point: Point, norm: Vector, light: Point): Color => {
-    const dot = light.subtract(point).normalize().dotProduct(norm);
+  getLambertianColor = (point: Point, normal: Vector, lightDir: Vector): Color => {
+    const dot = lightDir.dotProduct(normal);
     return this.color.multiply(dot);
+  };
+
+  // https://en.wikipedia.org/wiki/Specular_reflection#Direction_of_reflection
+  getSpecularColor = (normal: Vector, lightDir: Vector, cameraDir: Vector): Color => {
+    const reflection = reflectVector(lightDir, normal);
+    return this.color.multiply(Math.pow(reflection.dotProduct(cameraDir), this.shinyness));
   };
 
   /**
@@ -189,6 +207,8 @@ class Vector {
   normalize = (): Vector => {
     return this.constructor.make(...normalize(toArray(this)));
   }
+
+  subtract = (that: Vector): Vector => Vector.make(...subtract(toArray(this), toArray(that)));
 
   multiplyScalar = (scalar: number): Vector => Vector.make(...multiply(toArray(this), scalar));
 
@@ -339,8 +359,8 @@ const trace = (canvas: HTMLCanvasElement) => {
    * TODO: make origin parameterizable
    */
   const origin = Point.make(0, -10, 0);
-  const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50, 100, 150)));
-  const sphere2 = Sphere.make(Point.make(3, 5, 0), 2, Material.make(Color.make(150, 100, 50)));
+  const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50, 100, 150), 10));
+  const sphere2 = Sphere.make(Point.make(3, 5, 0), 2, Material.make(Color.make(150, 100, 50), 4));
   const light1 = Point.make(5, 1, 8);
 
   const objects = [sphere1, sphere2];
@@ -358,9 +378,9 @@ const trace = (canvas: HTMLCanvasElement) => {
       const [object, point] = find(objects, object => object.intersect(ray));
 
       if (object && point) {
-        const norm = object.normalVector(point);
+        const normal = object.normalVector(point);
         const light = light1;
-        const color = object.material.getColor(point, norm, light);
+        const color = object.material.getColor(point, normal, light, origin);
         ctx.fillStyle = color.toRgbString();
         ctx.fillRect(i, j, 1, 1);
       }
@@ -374,4 +394,5 @@ export {
   Point,
   Vector,
   ScreenToWorld,
+  reflectVector,
 };
