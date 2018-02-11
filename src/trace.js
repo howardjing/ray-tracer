@@ -64,9 +64,9 @@ class Color {
   blue: number;
 
   constructor(red: number, green: number, blue: number) {
-    this.red = truncate(red, 0, 255);
-    this.green = truncate(green, 0, 255);
-    this.blue = truncate(blue, 0, 255);
+    this.red = Math.round(truncate(red, 0, 255));
+    this.green = Math.round(truncate(green, 0, 255));
+    this.blue = Math.round(truncate(blue, 0, 255));
   }
 
   static make(red: number, green: number, blue: number) {
@@ -77,6 +77,14 @@ class Color {
 
   toRgbString() {
     return `rgb(${this.red},${this.green},${this.blue})`;
+  }
+
+  multiply = (x: number): Color => {
+    return Color.make(...multiply(this.toArray(), x));
+  }
+
+  add = (that: Color): Color => {
+    return Color.make(...add(this.toArray(), that.toArray()));
   }
 }
 
@@ -105,9 +113,26 @@ class Material {
    * the shape.
    */
   getColor = (point: Point, norm: Vector, light: Point): Color => {
+    const ambient = this.getAmbientColor();
+    const lambertian = this.getLambertianColor(point, norm, light);
+
+    return ambient.multiply(0.2).add(lambertian.multiply(0.8));
+  };
+
+  /**
+   * @private
+   */
+  getLambertianColor = (point: Point, norm: Vector, light: Point): Color => {
     const dot = light.subtract(point).normalize().dotProduct(norm);
-    return Color.make(...multiply(this.color.toArray(), dot).map(x => Math.round(x)));
-  }
+    return this.color.multiply(dot);
+  };
+
+  /**
+   * @private
+   */
+  getAmbientColor = (): Color => {
+    return this.color;
+  };
 }
 
 class Point {
