@@ -120,15 +120,14 @@ class Material {
    * the direction from the point to light source and the norm of
    * the shape.
    */
-  getColor = (point: Point, normal: Vector, light: Point, camera: Point): Color => {
-    const lightDirection = light.subtract(point).normalize();
+  getColor = (point: Point, normal: Vector, lightDirection: Vector, camera: Point): Color => {
     const cameraDirection = camera.subtract(point).normalize();
 
     const ambient = this.getAmbientColor();
     const lambertian = this.getLambertianColor(point, normal, lightDirection);
     const specular = this.getSpecularColor(normal, lightDirection, cameraDirection);
 
-    return ambient.multiply(0.1).add(lambertian.multiply(0.45)).add(specular.multiply(0.45));
+    return ambient.multiply(0.2).add(lambertian.multiply(0.4)).add(specular.multiply(0.4));
   };
 
   /**
@@ -238,13 +237,18 @@ class Ray {
   origin: Point;
   direction: Vector;
 
-  constructor(origin: Point, end: Point) {
+  constructor(origin: Point, direction: Vector) {
     this.origin = origin;
-    this.direction = end.subtract(origin).normalize();
+    this.direction = direction;
   }
 
   static make(origin: Point, end: Point) {
-    return new this(origin, end);
+    const direction = end.subtract(origin).normalize();
+    return new this(origin, direction);
+  }
+
+  static fromOriginAndDirection(origin: Point, direction: Vector) {
+    return new this(origin, direction);
   }
 }
 
@@ -327,9 +331,8 @@ class ScreenToWorld {
  * like find, but instead of returning the found object, it returns
  * the found object + the return value of the finder function
  */
-const find = <T, U>(ts: T[], finder: (t: T) => ?U): [?T, ?U] => {
-  for (let i = 0; i < ts.length; i++) {
-    const t = ts[i];
+const find = <T, U>(ts: Iterable<T>, finder: (t: T) => ?U): [?T, ?U] => {
+  for (const t of ts) {
     const u = finder(t);
     if (u) {
       return [t, u];
@@ -337,6 +340,20 @@ const find = <T, U>(ts: T[], finder: (t: T) => ?U): [?T, ?U] => {
   }
 
   return [null, null];
+};
+
+const BLACK = Color.make(0, 0, 0);
+
+const inShadow = (point: Point, lightDirection: Vector, objects: Iterable<Sphere>): boolean => {
+  const ray = Ray.fromOriginAndDirection(point, lightDirection);
+  const [object, _] = find(objects, object => object.intersect(ray));
+  return !!object;
+}
+
+const withoutShape = <T>(xs: Set<T>, x: T): Set<T> => {
+  const clone = new Set(xs);
+  clone.delete(x);
+  return clone;
 };
 
 /**
@@ -359,11 +376,11 @@ const trace = (canvas: HTMLCanvasElement) => {
    * TODO: make origin parameterizable
    */
   const origin = Point.make(0, -10, 0);
-  const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50, 100, 150), 10));
-  const sphere2 = Sphere.make(Point.make(3, 5, 0), 2, Material.make(Color.make(150, 100, 50), 4));
-  const light1 = Point.make(5, 1, 8);
+  const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50, 100, 150), 20));
+  const sphere2 = Sphere.make(Point.make(4, 5, 0), 2, Material.make(Color.make(150, 100, 50), 4));
+  const light1 = Point.make(-10, -5, 3);
 
-  const objects = [sphere1, sphere2];
+  const objects = new Set([sphere1, sphere2]);
   const screenToWorld = new ScreenToWorld(canvasWidth, canvasHeight, 10);
 
   /**
@@ -380,7 +397,10 @@ const trace = (canvas: HTMLCanvasElement) => {
       if (object && point) {
         const normal = object.normalVector(point);
         const light = light1;
-        const color = object.material.getColor(point, normal, light, origin);
+        const lightDirection = light.subtract(point).normalize();
+        const color = inShadow(point, lightDirection, withoutShape(objects, object)) ?
+          BLACK :
+          object.material.getColor(point, normal, lightDirection, origin);
         ctx.fillStyle = color.toRgbString();
         ctx.fillRect(i, j, 1, 1);
       }
