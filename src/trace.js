@@ -242,12 +242,12 @@ class Ray {
     this.direction = direction;
   }
 
-  static make(origin: Point, end: Point) {
+  static fromPoints(origin: Point, end: Point) {
     const direction = end.subtract(origin).normalize();
     return new this(origin, direction);
   }
 
-  static fromOriginAndDirection(origin: Point, direction: Vector) {
+  static make(origin: Point, direction: Vector) {
     return new this(origin, direction);
   }
 }
@@ -345,7 +345,7 @@ const find = <T, U>(ts: Iterable<T>, finder: (t: T) => ?U): [?T, ?U] => {
 const BLACK = Color.make(0, 0, 0);
 
 const inShadow = (point: Point, lightDirection: Vector, objects: Iterable<Sphere>): boolean => {
-  const ray = Ray.fromOriginAndDirection(point, lightDirection);
+  const ray = Ray.make(point, lightDirection);
   const [object, _] = find(objects, object => object.intersect(ray));
   return !!object;
 }
@@ -391,7 +391,7 @@ const trace = (canvas: HTMLCanvasElement) => {
    */
   for (let i = 0; i < canvasWidth; i++) {
     for (let j = 0; j < canvasHeight; j++) {
-      const ray = Ray.make(origin, screenToWorld.getPoint(i, j));
+      const ray = Ray.fromPoints(origin, screenToWorld.getPoint(i, j));
       const [object, point] = find(objects, object => object.intersect(ray));
 
       if (object && point) {
