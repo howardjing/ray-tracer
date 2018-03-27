@@ -250,9 +250,82 @@ class Ray {
   static make(origin: Point, direction: Vector) {
     return new this(origin, direction);
   }
+
+  pointAtTime = (t: number): Point => {
+    return this.origin.addVector(this.direction.multiplyScalar(t));
+  }
 }
 
-class Sphere {
+interface Shape {
+  intersect(ray: Ray): ?Point;
+  normalVector(p: Point): Vector;
+}
+
+class Plane implements Shape {
+  origin: Point;
+  normal: Vector;
+  material: Material;
+
+  constructor(origin: Point, normal: Vector, material:  Material) {
+    this.origin = origin;
+    this.normal = normal.normalize();
+    this.material = material;
+  }
+
+  static make(origin: Point, normal: Vector, material: Material) {
+    return new this(origin, normal, material);
+  }
+
+  intersect = (ray: Ray): ?Point => {
+    /**
+     * See https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection
+     * for more info.
+     *
+     * A plane can be described as set of points p such that
+     *
+     * ```
+     * (p - planeOrigin) dot n = 0
+     * ```
+     *
+     * ray intersecting plane can be described as set of points p such that
+     * where t is a number
+     *
+     * ```
+     * rayOrigin + direction * t = p
+     * ```
+     *
+     * The point of intersection is
+     *
+     * ```
+     * ((rayOrigin + direction * t) - planeOrigin) dot n = 0
+     * ```
+     *
+     * Solving for t yields
+     *
+     * ```
+     * t = ((planeOrigin - rayOrigin) dot n) / (direction dot n)
+     * ```
+     */
+
+    const denominator = ray.direction.dotProduct(this.normal);
+    // TODO: add margin of error
+    if (denominator === 0) { return null; }
+
+    const numerator = this.origin.subtract(ray.origin).dotProduct(this.normal);
+
+    // TODO: add margin of error
+    const t = numerator / denominator;
+    if (t <= 0) { return null; }
+
+    return ray.pointAtTime(t);
+  }
+
+  normalVector = (p: Point): Vector => {
+    return this.normal;
+  }
+}
+
+class Sphere implements Shape {
   origin: Point;
   radius: number;
   material: Material;
@@ -293,7 +366,7 @@ class Sphere {
     if (roots.length === 0) { return null; }
     const minRoot = Math.min(...roots);
 
-    return ray.origin.addVector(ray.direction.multiplyScalar(minRoot));
+    return ray.pointAtTime(minRoot);
   }
 
   normalVector = (p: Point): Vector => {
@@ -344,7 +417,7 @@ const find = <T, U>(ts: Iterable<T>, finder: (t: T) => ?U): [?T, ?U] => {
 
 const BLACK = Color.make(0, 0, 0);
 
-const inShadow = (point: Point, lightDirection: Vector, objects: Iterable<Sphere>): boolean => {
+const inShadow = (point: Point, lightDirection: Vector, objects: Iterable<Shape>): boolean => {
   const ray = Ray.make(point, lightDirection);
   const [object, _] = find(objects, object => object.intersect(ray));
   return !!object;
@@ -376,11 +449,12 @@ const trace = (canvas: HTMLCanvasElement) => {
    * TODO: make origin parameterizable
    */
   const origin = Point.make(0, -10, 0);
+  const floor = Plane.make(Point.make(0, 0, -2), Vector.make(0, 0, 1), Material.make(Color.make(100, 100, 100), 20));
   const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50, 100, 150), 20));
   const sphere2 = Sphere.make(Point.make(4, 5, 0), 2, Material.make(Color.make(150, 100, 50), 4));
   const light1 = Point.make(-10, -5, 3);
 
-  const objects = new Set([sphere1, sphere2]);
+  const objects = new Set([sphere1, sphere2, floor]);
   const screenToWorld = new ScreenToWorld(canvasWidth, canvasHeight, 10);
 
   /**
