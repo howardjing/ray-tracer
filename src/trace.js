@@ -257,7 +257,8 @@ class Ray {
 }
 
 interface Shape {
-  intersect(ray: Ray): ?Point;
+  material: Material;
+  intersect(ray: Ray): ?number;
   normalVector(p: Point): Vector;
 }
 
@@ -276,7 +277,7 @@ class Plane implements Shape {
     return new this(origin, normal, material);
   }
 
-  intersect = (ray: Ray): ?Point => {
+  intersect = (ray: Ray): ?number => {
     /**
      * See https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection
      * for more info.
@@ -317,7 +318,7 @@ class Plane implements Shape {
     const t = numerator / denominator;
     if (t <= 0) { return null; }
 
-    return ray.pointAtTime(t);
+    return t;
   }
 
   normalVector = (p: Point): Vector => {
@@ -351,7 +352,7 @@ class Sphere implements Shape {
    *
    * https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
    */
-  intersect = (ray: Ray): ?Point => {
+  intersect = (ray: Ray): ?number => {
     const difference = ray.origin.subtract(this.origin);
 
     // TODO: assuming ray.direction is normalized, this will always be 1
@@ -366,7 +367,7 @@ class Sphere implements Shape {
     if (roots.length === 0) { return null; }
     const minRoot = Math.min(...roots);
 
-    return ray.pointAtTime(minRoot);
+    return minRoot;
   }
 
   normalVector = (p: Point): Vector => {
@@ -404,12 +405,21 @@ class ScreenToWorld {
  * like find, but instead of returning the found object, it returns
  * the found object + the return value of the finder function
  */
-const find = <T, U>(ts: Iterable<T>, finder: (t: T) => ?U): [?T, ?U] => {
-  for (const t of ts) {
-    const u = finder(t);
-    if (u) {
-      return [t, u];
+const findClosest = (shapes: Iterable<Shape>, ray: Ray): [?Shape, ?Point] => {
+  // the closest shape we've seen so far
+  let closest = Infinity;
+  let closestShape = null;
+
+  for (const shape of shapes) {
+    const t = shape.intersect(ray);
+    if (t && t < closest) {
+      closest = t;
+      closestShape = shape;
     }
+  }
+
+  if (closestShape) {
+    return [closestShape, ray.pointAtTime(closest)];
   }
 
   return [null, null];
@@ -419,7 +429,7 @@ const BLACK = Color.make(0, 0, 0);
 
 const inShadow = (point: Point, lightDirection: Vector, objects: Iterable<Shape>): boolean => {
   const ray = Ray.make(point, lightDirection);
-  const [object, _] = find(objects, object => object.intersect(ray));
+  const [object, _] = findClosest(objects, ray);
   return !!object;
 }
 
@@ -454,7 +464,7 @@ const trace = (canvas: HTMLCanvasElement) => {
   const sphere2 = Sphere.make(Point.make(4, 5, 0), 2, Material.make(Color.make(150, 100, 50), 4));
   const light1 = Point.make(-10, -5, 3);
 
-  const objects = new Set([sphere1, sphere2, floor]);
+  const objects = new Set([floor, sphere1, sphere2]);
   const screenToWorld = new ScreenToWorld(canvasWidth, canvasHeight, 10);
 
   /**
@@ -466,7 +476,7 @@ const trace = (canvas: HTMLCanvasElement) => {
   for (let i = 0; i < canvasWidth; i++) {
     for (let j = 0; j < canvasHeight; j++) {
       const ray = Ray.fromPoints(origin, screenToWorld.getPoint(i, j));
-      const [object, point] = find(objects, object => object.intersect(ray));
+      const [object, point] = findClosest(objects, ray);
 
       if (object && point) {
         const normal = object.normalVector(point);
