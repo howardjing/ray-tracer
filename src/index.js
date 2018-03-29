@@ -1,9 +1,12 @@
-import trace from './trace';
+// @flow
+import React from 'react';
+import ReactDOM from 'react-dom';
+import App from './app';
 
 const el = document.querySelector('#app');
-const canvas = document.createElement('canvas');
-canvas.width = 800;
-canvas.height = 450;
-el.appendChild(canvas);
-
-trace(canvas);
+if (el) {
+  ReactDOM.render(
+    <App />,
+    el,
+  );
+}
