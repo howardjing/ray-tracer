@@ -1,5 +1,5 @@
 // @flow
-import { Point, Vector, ScreenToWorld, reflectVector } from './trace';
+import { Point, Vector, ScreenToWorld, reflectVector } from './index';
 
 declare var describe: any;
 declare var it: any;

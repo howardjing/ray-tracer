@@ -1,6 +1,13 @@
 // @flow
 import quadraticSolver from './quadratic-solver';
 
+let __id = 0;
+
+const getNextId = () => {
+  __id += 1;
+  return __id;
+};
+
 /**
  * given a number of possibilities n, returns a random integer
  * from [0, n)
@@ -256,18 +263,21 @@ class Ray {
   }
 }
 
-interface Shape {
+export interface Shape {
+  id: number;
   material: Material;
   intersect(ray: Ray): ?number;
   normalVector(p: Point): Vector;
 }
 
 class Plane implements Shape {
+  id: number;
   origin: Point;
   normal: Vector;
   material: Material;
 
   constructor(origin: Point, normal: Vector, material:  Material) {
+    this.id = getNextId();
     this.origin = origin;
     this.normal = normal.normalize();
     this.material = material;
@@ -327,11 +337,13 @@ class Plane implements Shape {
 }
 
 class Sphere implements Shape {
+  id: number;
   origin: Point;
   radius: number;
   material: Material;
 
   constructor(origin: Point, radius: number, material: Material) {
+    this.id = getNextId();
     this.origin = origin;
     this.radius = radius;
     this.material = material;
