@@ -2,8 +2,8 @@
 import React, { Component } from 'react';
 import trace, { Point, Plane, Sphere, Vector, Material, Color } from './tracer';
 import type { Shape } from './tracer';
-import SphereForm from './form-sphere';
-import StubForm from './form-stub';
+import SphereInputs from './inputs-sphere';
+import StubbedInputs from './inputs-stub';
 
 const floor = Plane.make(Point.make(0, 0, -2), Vector.make(0, 0, 1), Material.make(Color.make(100, 100, 100), 20));
 const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50, 100, 150), 20));
@@ -51,10 +51,10 @@ class App extends Component<{||}, State> {
 
 const ShapeForm = ({ shape }: {| shape: Shape |}) => {
   if (shape instanceof Sphere) {
-    return <SphereForm shape={shape} key={shape.id} />;
+    return <SphereInputs shape={shape} key={shape.id} />;
   }
 
-  return <StubForm shape={shape} key={shape.id} />;
+  return <StubbedInputs shape={shape} key={shape.id} />;
 };
 
 export default App;

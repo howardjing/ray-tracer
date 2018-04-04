@@ -6,12 +6,12 @@ type Props = {|
   shape: Shape,
 |};
 
-const StubForm = ({ shape }: Props) => {
+const StubbedInputs = ({ shape }: Props) => {
   return (
-    <div>
+    <div style={{ margin: '20px' }}>
       Stubby stub stub.
     </div>
   );
 };
 
-export default StubForm;
+export default StubbedInputs;
