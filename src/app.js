@@ -33,6 +33,18 @@ class App extends Component<{||}, State> {
     })
   };
 
+  handleChangeShape = (s: Shape) => {
+    console.log("ccchange");
+
+    const { shapes } = this.state;
+    const array = Array.from(shapes.values())
+    const index = array.findIndex(x => x.id === s.id);
+    array[index] = s;
+    this.setState(() => ({
+      shapes: new Set(array),
+    }));
+  }
+
   render() {
     const { shapes } = this.state;
 
@@ -43,15 +55,18 @@ class App extends Component<{||}, State> {
           width="800"
           height="450"
         />
-        { Array.from(shapes.values()).map(shape => <ShapeForm key={shape.id} shape={shape} />) }
+        { Array.from(shapes.values()).map(shape => <ShapeForm key={shape.id} shape={shape} onChange={this.handleChangeShape} />) }
       </div>
     );
   }
 }
 
-const ShapeForm = ({ shape }: {| shape: Shape |}) => {
+const ShapeForm = ({
+  shape,
+  onChange,
+}: {| shape: Shape, onChange: (shape: Shape) => any |}) => {
   if (shape instanceof Sphere) {
-    return <SphereInputs shape={shape} key={shape.id} />;
+    return <SphereInputs shape={shape} key={shape.id} onChange={onChange} />;
   }
 
   return <StubbedInputs shape={shape} key={shape.id} />;
