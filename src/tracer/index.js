@@ -465,6 +465,9 @@ const trace = (canvas: HTMLCanvasElement, shapes: Set<Shape>) => {
   const canvasHeight = canvas.height;
   const ctx = canvas.getContext('2d');
 
+  // clear canvas so we don't render over the previous render
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
   /**
    * Where the camera sits.
    *

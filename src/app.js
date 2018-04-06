@@ -10,11 +10,13 @@ const sphere1 = Sphere.make(Point.make(0, 0, 0), 2, Material.make(Color.make(50,
 const sphere2 = Sphere.make(Point.make(4, 5, 0), 2, Material.make(Color.make(150, 100, 50), 4));
 
 type State = {|
+  canvas: ?HTMLCanvasElement,
   shapes: Set<Shape>,
 |};
 
 class App extends Component<{||}, State> {
   state = {
+    canvas: null,
     shapes: (new Set([
       floor,
       sphere1,
@@ -22,27 +24,38 @@ class App extends Component<{||}, State> {
     ]): Set<Shape>),
   };
 
+  trace = () => {
+    setTimeout(() => {
+      const { canvas, shapes } = this.state;
+      if (canvas) {
+        trace(canvas, shapes);
+      }
+    });
+  }
+
   handleCanvas = (canvasEl: ?HTMLCanvasElement) => {
     if (!canvasEl) { return; }
 
     // getting around flow type error -- thinks that canvasEl is nullable
     const canvas = canvasEl;
-    setTimeout(() => {
-      const { shapes } = this.state;
-      trace(canvas, shapes);
-    })
+
+    this.setState(() => ({
+      canvas,
+    }), this.trace);
   };
 
   handleChangeShape = (s: Shape) => {
-    console.log("ccchange");
+    console.log("ccchange shapessss");
 
     const { shapes } = this.state;
     const array = Array.from(shapes.values())
     const index = array.findIndex(x => x.id === s.id);
     array[index] = s;
+    const newShapes = new Set(array);
+
     this.setState(() => ({
-      shapes: new Set(array),
-    }));
+      shapes: newShapes,
+    }), this.trace);
   }
 
   render() {
