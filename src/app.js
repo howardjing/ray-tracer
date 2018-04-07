@@ -2,6 +2,7 @@
 import React, { Component } from 'react';
 import trace, { Point, Plane, Sphere, Vector, Material, Color } from './tracer';
 import type { Shape } from './tracer';
+import PlaneInputs from './inputs-plane';
 import SphereInputs from './inputs-sphere';
 import StubbedInputs from './inputs-stub';
 
@@ -80,6 +81,10 @@ const ShapeForm = ({
 }: {| shape: Shape, onChange: (shape: Shape) => any |}) => {
   if (shape instanceof Sphere) {
     return <SphereInputs shape={shape} key={shape.id} onChange={onChange} />;
+  }
+
+  if (shape instanceof Plane) {
+    return <PlaneInputs shape={shape} key={shape.id} onChange={onChange} />;
   }
 
   return <StubbedInputs shape={shape} key={shape.id} />;
